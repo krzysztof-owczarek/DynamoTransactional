@@ -3,13 +3,12 @@ package pl.krzysztofowczarek
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.verifyOrder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
-import org.springframework.stereotype.Service
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.localstack.LocalStackContainer
@@ -17,7 +16,6 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import org.testcontainers.utility.MountableFile
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable
 
 @SpringBootTest
 @Testcontainers
@@ -27,21 +25,14 @@ class DynamoTransactionAspectTest {
     @MockkBean
     private lateinit var transactionManagerFactory: DynamoTransactionManagerPrototypeFactory
 
+    @Autowired
+    private lateinit var invoker: Invoker
+
     private val transactionManager = mockk<DynamoTransactionManager>(relaxed = true)
 
     @BeforeEach
     fun setUp() {
         every { transactionManagerFactory.create() }.returns(transactionManager)
-    }
-
-    @Service
-    class Invoker(private val testRepository: TestRepository) {
-
-        @DynamoWriteTransaction
-        fun saveAndCommit() {
-            val entity = TestEntity("key1", "val1")
-            testRepository.save(entity)
-        }
     }
 
     companion object {
@@ -69,16 +60,27 @@ class DynamoTransactionAspectTest {
         }
     }
 
-    @Autowired
-    private lateinit var testRepository: TestRepository
-
     @Test
     fun `adds item to the transaction and commits it`() {
-        val testService = Invoker(testRepository)
+        val entity = TestEntity("key1", "val1")
 
-        testService.saveAndCommit()
+        invoker.saveAndCommit(entity)
 
-        verify { transactionManager.save(any<DynamoDbTable<TestEntity>>(), any()) }
-        verify { transactionManager.commit() }
+        verifyOrder {
+            transactionManager.save(any(), any<TestEntity>())
+            transactionManager.commit()
+        }
+    }
+
+    @Test
+    fun `adds delete item to the transaction and commits it`() {
+        val entity = TestEntity("key1", "val1")
+
+        invoker.deleteAndCommit(entity)
+
+        verifyOrder {
+            transactionManager.delete(any(), any<TestEntity>())
+            transactionManager.commit()
+        }
     }
 }

@@ -16,12 +16,12 @@ class DynamoTransactionAspect(
 
     private val dynamoTransactionManagerScopedRef = DynamoTransactionManagerScopedRef.scopedValue
 
-    @Around("@annotation(dynamoWriteTransaction")
+    @Around("@annotation(dynamoWriteTransaction)")
     fun aroundWriteTransaction(
         joinPoint: ProceedingJoinPoint,
         dynamoWriteTransaction: DynamoWriteTransaction
     ): Any? {
-        println("AAA")
+        print("TEST")
         return when(dynamoWriteTransaction.propagation) {
             DynamoTransactionPropagation.REQUIRED -> {
                 if (dynamoTransactionManagerScopedRef.isBound) {

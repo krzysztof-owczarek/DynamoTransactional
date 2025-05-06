@@ -5,5 +5,5 @@ import software.amazon.awssdk.enhanced.dynamodb.model.TransactWriteItemsEnhanced
 
 @Component
 class TransactionRequestBuilderFactory {
-    fun builder() = TransactWriteItemsEnhancedRequest.builder()
+    fun builder(): TransactWriteItemsEnhancedRequest.Builder = TransactWriteItemsEnhancedRequest.builder()
 }

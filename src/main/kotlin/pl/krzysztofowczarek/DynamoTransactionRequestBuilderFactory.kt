@@ -24,12 +24,10 @@
 
 package pl.krzysztofowczarek
 
-import org.springframework.beans.factory.ObjectFactory
 import org.springframework.stereotype.Component
+import software.amazon.awssdk.enhanced.dynamodb.model.TransactWriteItemsEnhancedRequest
 
 @Component
-class DynamoTransactionManagerPrototypeFactory(
-    private val factory: ObjectFactory<DynamoTransactionManager>
-) {
-    fun create() = factory.`object`
+class DynamoTransactionRequestBuilderFactory {
+    fun builder(): TransactWriteItemsEnhancedRequest.Builder = TransactWriteItemsEnhancedRequest.builder()
 }

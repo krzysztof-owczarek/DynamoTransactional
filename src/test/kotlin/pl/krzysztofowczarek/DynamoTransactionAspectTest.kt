@@ -26,7 +26,7 @@ class DynamoTransactionAspectTest {
     private lateinit var transactionManagerFactory: DynamoTransactionManagerPrototypeFactory
 
     @Autowired
-    private lateinit var invoker: Invoker
+    private lateinit var repositoryMethodInvoker: RepositoryMethodInvoker
 
     private val transactionManager = mockk<DynamoTransactionManager>(relaxed = true)
 
@@ -64,7 +64,7 @@ class DynamoTransactionAspectTest {
     fun `adds item to the transaction and commits it`() {
         val entity = TestEntity("key1", "val1")
 
-        invoker.saveAndCommit(entity)
+        repositoryMethodInvoker.saveAndCommit(entity)
 
         verifyOrder {
             transactionManager.save(any(), any<TestEntity>())
@@ -76,7 +76,7 @@ class DynamoTransactionAspectTest {
     fun `adds delete item to the transaction and commits it`() {
         val entity = TestEntity("key1", "val1")
 
-        invoker.deleteAndCommit(entity)
+        repositoryMethodInvoker.deleteAndCommit(entity)
 
         verifyOrder {
             transactionManager.delete(any(), any<TestEntity>())

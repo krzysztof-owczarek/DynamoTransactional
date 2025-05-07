@@ -3,7 +3,7 @@ package pl.krzysztofowczarek
 import org.springframework.stereotype.Service
 
 @Service
-class Invoker(private val testRepository: TestRepository) {
+class RepositoryMethodInvoker(private val testRepository: TestRepository) {
 
     @DynamoWriteTransaction
     fun saveAndCommit(entity: TestEntity) {

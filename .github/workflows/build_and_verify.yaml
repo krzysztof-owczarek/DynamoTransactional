@@ -7,26 +7,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: eclipse-temurin:22-jdk-alpine
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Git and Maven
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Run Maven in Container
         run: |
-          apk add --no-cache git maven
-
-      - name: Setup Maven Cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Build with Maven
-        run: mvn -B verify --file pom.xml
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            eclipse-temurin:22-jdk-alpine \
+            sh -c "apk add --no-cache maven git && mvn -B verify --file pom.xml"
 
       - name: Upload Test Results
         if: always()

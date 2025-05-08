@@ -45,7 +45,6 @@ class DynamoTransactionAspect(
         joinPoint: ProceedingJoinPoint,
         dynamoWriteTransaction: DynamoWriteTransaction
     ): Any? {
-        print("TEST")
         return when(dynamoWriteTransaction.propagation) {
             DynamoTransactionPropagation.REQUIRED -> {
                 if (dynamoTransactionManagerScopedRef.isBound) {

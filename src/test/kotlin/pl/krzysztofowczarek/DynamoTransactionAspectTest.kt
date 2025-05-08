@@ -83,4 +83,18 @@ class DynamoTransactionAspectTest {
             transactionManager.commit()
         }
     }
+
+    @Test
+    fun `reuses existing transaction when nested methods`() {
+        val entity1 = TestEntity("key1", "val1")
+        val entity2 = TestEntity("key2", "val2")
+
+        repositoryMethodInvoker.nestedSaveAndCommitPropagationRequired(entity1, entity2)
+
+        verifyOrder {
+            transactionManager.save(any(), entity1)
+            transactionManager.save(any(), entity2)
+            transactionManager.commit()
+        }
+    }
 }

@@ -24,18 +24,21 @@
 
 package pl.krzysztofowczarek
 
-import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.boot.runApplication
-import org.springframework.context.annotation.EnableAspectJAutoProxy
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema
 
+@Configuration
+class DynamoDbConfiguration(private val dynamoDbTableProperties: DynamoDbTableProperties) {
 
+    @Bean
+    fun testDynamoDbDao(enhancedClient: DynamoDbEnhancedClient): DynamoDbDao<TestEntity> {
+        val table = enhancedClient.table(
+            dynamoDbTableProperties.tableName,
+            TableSchema.fromBean(TestEntity::class.java)
+        )
 
-@EnableAspectJAutoProxy
-@SpringBootApplication
-@EnableConfigurationProperties(AwsProperties::class, DynamoDbTableProperties::class)
-class Application {
-    fun main(args: Array<String>) {
-        runApplication<Application>(*args)
+        return DynamoDbDao<TestEntity>(table)
     }
 }

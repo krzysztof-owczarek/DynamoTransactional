@@ -24,18 +24,13 @@
 
 package pl.krzysztofowczarek
 
-import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.boot.runApplication
-import org.springframework.context.annotation.EnableAspectJAutoProxy
+object DynamoTransactionExceptions {
+    class TransactionRequestEmptyException(
+        transactionId: TransactionId,
+    ) : RuntimeException("[$transactionId] Transaction is not committable" +
+            " because transactional request is empty.")
 
-
-
-@EnableAspectJAutoProxy
-@SpringBootApplication
-@EnableConfigurationProperties(AwsProperties::class, DynamoDbTableProperties::class)
-class Application {
-    fun main(args: Array<String>) {
-        runApplication<Application>(*args)
-    }
+    class TransactionAlreadyCommittedException(
+        transactionId: TransactionId,
+    ) : RuntimeException("[$transactionId] Transaction has been already closed.")
 }

@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -37,13 +37,13 @@ import java.util.concurrent.atomic.AtomicBoolean
  * It means that it can execute one transaction only.
  */
 @Component
-@Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE) // TODO: Write why
+@Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 class DynamoTransactionManager(
     dynamoTransactionRequestBuilderFactory: DynamoTransactionRequestBuilderFactory,
     private val enhancedClient: DynamoDbEnhancedClient
 ) {
 
-    val transactionId: String = UUID.randomUUID().toString()
+    val transactionId: TransactionId = TransactionId.create()
 
     private val transactionRequestBuilder = dynamoTransactionRequestBuilderFactory.builder()
 
@@ -57,7 +57,7 @@ class DynamoTransactionManager(
 
     fun <T> save(table: DynamoDbTable<T>, entity: T) {
         if (transactionClosed.get()) {
-            throw RuntimeException("[Transaction#$transactionId] Transaction has been already closed.")
+            throw DynamoTransactionExceptions.TransactionAlreadyCommittedException(transactionId)
         }
 
         transactionRequestBuilder.addPutItem(
@@ -70,7 +70,7 @@ class DynamoTransactionManager(
 
     fun <T> delete(table: DynamoDbTable<T>, entity: T) {
         if (transactionClosed.get()) {
-            throw RuntimeException("[Transaction#$transactionId] Transaction has been already closed.")
+            throw DynamoTransactionExceptions.TransactionAlreadyCommittedException(transactionId)
         }
 
         transactionRequestBuilder.addDeleteItem(
@@ -86,11 +86,10 @@ class DynamoTransactionManager(
             if (committable.get()) {
                 enhancedClient.transactWriteItems(transactionRequestBuilder.build())
             } else {
-                throw RuntimeException("[Transaction#$transactionId] Transaction is not committable" +
-                        " because transactional request is empty.")
+                throw DynamoTransactionExceptions.TransactionRequestEmptyException(transactionId)
             }
         } else {
-            throw RuntimeException("[Transaction#$transactionId] Transaction has been already closed.")
+            throw DynamoTransactionExceptions.TransactionAlreadyCommittedException(transactionId)
         }
     }
 }

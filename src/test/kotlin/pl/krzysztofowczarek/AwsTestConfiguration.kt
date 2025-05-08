@@ -20,16 +20,17 @@ class AwsTestConfiguration {
     }
 
     @Bean
-    fun dynamoDbClient(awsProperties: AwsProperties, credentialsProvider: AwsCredentialsProvider) = DynamoDbClient.builder()
-        .credentialsProvider(credentialsProvider)
-        .region(Region.of(awsProperties.region))
-        .endpointOverride(URI.create(awsProperties.endpoint))
-        .build()
+    fun dynamoDbClient(awsProperties: AwsProperties, credentialsProvider: AwsCredentialsProvider)
+            = DynamoDbClient.builder()
+                .credentialsProvider(credentialsProvider)
+                .region(Region.of(awsProperties.region))
+                .endpointOverride(URI.create(awsProperties.endpoint!!))
+                .build()
 
     @Bean
-    fun dynamoDbEnhancedClient(dynamoDbClient: DynamoDbClient) =
-        DynamoDbEnhancedClient.builder()
-            .dynamoDbClient(dynamoDbClient)
-            .build()
+    fun dynamoDbEnhancedClient(dynamoDbClient: DynamoDbClient)
+            = DynamoDbEnhancedClient.builder()
+                .dynamoDbClient(dynamoDbClient)
+                .build()
 
 }

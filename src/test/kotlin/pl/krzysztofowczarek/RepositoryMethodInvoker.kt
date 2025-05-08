@@ -3,7 +3,10 @@ package pl.krzysztofowczarek
 import org.springframework.stereotype.Service
 
 @Service
-class RepositoryMethodInvoker(private val testRepository: TestRepository) {
+class RepositoryMethodInvoker(
+    private val testRepository: TestRepository,
+    private val nestedRepositoryMethodInvoker: NestedRepositoryMethodInvoker
+) {
 
     @DynamoWriteTransaction
     fun saveAndCommit(entity: TestEntity) {
@@ -18,6 +21,6 @@ class RepositoryMethodInvoker(private val testRepository: TestRepository) {
     @DynamoWriteTransaction
     fun nestedSaveAndCommitPropagationRequired(entity1: TestEntity, entity2: TestEntity) {
         testRepository.save(entity1)
-        saveAndCommit(entity2)
+        nestedRepositoryMethodInvoker.saveAndCommit(entity2)
     }
 }

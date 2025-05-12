@@ -124,4 +124,74 @@ class DynamoTransactionAspectTest {
 
         verify { otherTransactionManager wasNot Called }
     }
+
+    @Test
+    fun `outer and inner transactions save and commit from different managers`() {
+        val entity1 = TestEntity("key1", "val1")
+        val entity2 = TestEntity("key2", "val2")
+        // and
+        val outerManager = mockk<DynamoTransactionManager>(relaxed = true)
+        val innerManager = mockk<DynamoTransactionManager>(relaxed = true)
+        // and
+        every { transactionManagerFactory.create() }
+            .returns(outerManager)
+            .andThen(innerManager)
+
+        repositoryMethodInvoker.nestedSaveAndCommitPropagationRequiresNew(entity1, entity2)
+
+        verifyOrder {
+            outerManager.save(any(), entity1)
+            innerManager.save(any(), entity2)
+            innerManager.commit()
+            outerManager.commit()
+        }
+    }
+
+    @Test
+    fun `requires new performs as requires when there is no active transaction available`() {
+        val entity1 = TestEntity("key1", "val1")
+        // and
+        val outerManager = mockk<DynamoTransactionManager>(relaxed = true)
+        val innerManager = mockk<DynamoTransactionManager>(relaxed = true)
+        // and
+        every { transactionManagerFactory.create() }
+            .returns(outerManager)
+            .andThen(innerManager)
+
+        repositoryMethodInvoker.saveAndCommitPropagationRequiresNew(entity1)
+
+        verifyOrder {
+            outerManager.save(any(), entity1)
+            outerManager.commit()
+        }
+
+        verify { innerManager wasNot Called }
+    }
+
+    @Test
+    fun `runtime exception thrown from inner transactions does not stop outer transaction from committing`() {
+        val entity1 = TestEntity("key1", "val1")
+        val entity2 = TestEntity("key2", "val2")
+        // and
+        val outerManager = mockk<DynamoTransactionManager>(relaxed = true)
+        val innerManager = mockk<DynamoTransactionManager>(relaxed = true)
+        // and
+        every { transactionManagerFactory.create() }
+            .returns(outerManager)
+            .andThen(innerManager)
+
+        try {
+            repositoryMethodInvoker.nestedSaveAndCommitPropagationRequiresNewThrowingRuntimeException(entity1, entity2)
+        } catch (_: RuntimeException) {
+            // expected
+        }
+
+        verifyOrder {
+            outerManager.save(any(), entity1)
+            innerManager.save(any(), entity2)
+            outerManager.commit()
+        }
+
+        verify(exactly = 0) { innerManager.commit() }
+    }
 }

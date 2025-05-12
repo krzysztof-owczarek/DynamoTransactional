@@ -47,4 +47,21 @@ class RepositoryMethodInvoker(
         testRepository.save(entity1)
         nestedRepositoryMethodInvoker.saveAndCommit(entity2)
     }
+
+    @DynamoWriteTransaction
+    fun nestedSaveAndCommitPropagationRequiresNew(entity1: TestEntity, entity2: TestEntity) {
+        testRepository.save(entity1)
+        nestedRepositoryMethodInvoker.saveAndCommitRequiresNew(entity2)
+    }
+
+    @DynamoWriteTransaction(propagation = DynamoTransactionPropagation.REQUIRES_NEW)
+    fun saveAndCommitPropagationRequiresNew(entity1: TestEntity) {
+        testRepository.save(entity1)
+    }
+
+    fun nestedSaveAndCommitPropagationRequiresNewThrowingRuntimeException(entity1: TestEntity, entity2: TestEntity) {
+        testRepository.save(entity1)
+        nestedRepositoryMethodInvoker.saveAndThrowRuntimeException(entity2)
+    }
+
 }

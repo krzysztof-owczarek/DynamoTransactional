@@ -36,6 +36,8 @@ class DynamoTransactionAspect(
     private val dynamoTransactionManagerPrototypeFactory: DynamoTransactionManagerPrototypeFactory
 ) {
 
+    private val errorOrRuntimeExceptionThrownFromNestedTransaction = ThreadLocal.withInitial { false }
+
     private val log = KotlinLogging.logger {}
 
     private val dynamoTransactionManagerScopedRef = DynamoTransactionManagerScopedRef.scopedValue
@@ -55,6 +57,51 @@ class DynamoTransactionAspect(
 
                 startTransaction(dynamoTransactionManagerScopedRef, joinPoint)
             }
+
+            DynamoTransactionPropagation.REQUIRES_NEW -> {
+                if (dynamoTransactionManagerScopedRef.isBound) {
+                   return startNestedTransaction(dynamoTransactionManagerScopedRef, joinPoint)
+                }
+
+                log.debug { "[Transaction#${dynamoTransactionManagerScopedRef.get().transactionId}] " +
+                        "No transaction in progress. Starting new transaction." }
+                startTransaction(dynamoTransactionManagerScopedRef, joinPoint)
+            }
+        }
+    }
+
+    private fun startNestedTransaction(
+        dynamoTransactionManagerScopedRef: ScopedValue<DynamoTransactionManager>,
+        joinPoint: ProceedingJoinPoint
+    ) {
+        log.debug { "[Transaction#${dynamoTransactionManagerScopedRef.get().transactionId}] " +
+                "Starting nested transaction." }
+
+        ScopedValue.where(dynamoTransactionManagerScopedRef, dynamoTransactionManagerPrototypeFactory.create()).call<Any, Throwable> {
+            try {
+                return@call joinPoint.proceed().also {
+                    dynamoTransactionManagerScopedRef.get().commit()
+                }
+            } catch (e: Throwable) {
+                handleException(dynamoTransactionManagerScopedRef, e, isNestedTransactionException = true)
+            }
+        }
+    }
+
+    private fun handleException(
+        dynamoTransactionManagerScopedRef: ScopedValue<DynamoTransactionManager>,
+        e: Throwable,
+        isNestedTransactionException: Boolean = false
+    ) {
+        when (e) {
+            is Error, is RuntimeException -> {
+                log.error(e) { "[Transaction#${dynamoTransactionManagerScopedRef.get().transactionId}] " +
+                        "Exception occurred. Transaction will not be committed: ${e.cause }" }
+                if (isNestedTransactionException) {
+                    errorOrRuntimeExceptionThrownFromNestedTransaction.set(true)
+                }
+                throw e
+            }
         }
     }
 
@@ -63,8 +110,19 @@ class DynamoTransactionAspect(
         joinPoint: ProceedingJoinPoint
     ) = ScopedValue.where(dynamoTransactionManagerScopedRef, dynamoTransactionManagerPrototypeFactory.create()).call<Any, Throwable> {
         log.debug { "[Transaction#${dynamoTransactionManagerScopedRef.get().transactionId}] Starting transaction." }
-        return@call joinPoint.proceed().also {
-            dynamoTransactionManagerScopedRef.get().commit()
+        try {
+            return@call joinPoint.proceed().also {
+                dynamoTransactionManagerScopedRef.get().commit()
+            }
+        } catch (e: Throwable) {
+            handleException(dynamoTransactionManagerScopedRef, e)
+        } finally {
+            // commit if exception comes from nested transaction
+            if (errorOrRuntimeExceptionThrownFromNestedTransaction.get()) {
+                log.debug { "[Transaction#${dynamoTransactionManagerScopedRef.get().transactionId}] " +
+                        "Exception thrown from nested transaction. Committing outer transaction." }
+                dynamoTransactionManagerScopedRef.get().commit()
+            }
         }
     }
 }

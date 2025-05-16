@@ -1,2 +1,5 @@
 dynamodb:
   table-name: test-table
+logging:
+  level:
+    pl.krzysztofowczarek: DEBUG

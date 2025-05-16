@@ -59,9 +59,39 @@ class RepositoryMethodInvoker(
         testRepository.save(entity1)
     }
 
+    @DynamoWriteTransaction
     fun nestedSaveAndCommitPropagationRequiresNewThrowingRuntimeException(entity1: TestEntity, entity2: TestEntity) {
         testRepository.save(entity1)
         nestedRepositoryMethodInvoker.saveAndThrowRuntimeException(entity2)
     }
 
+    @DynamoWriteTransaction
+    fun nestedSaveAndCommitPropagationRequiresNewThrowingError(entity1: TestEntity, entity2: TestEntity) {
+        testRepository.save(entity1)
+        nestedRepositoryMethodInvoker.saveAndThrowError(entity2)
+    }
+
+    @DynamoWriteTransaction
+    fun nestedSaveAndCommitPropagationRequiresNewThrowingCheckedException(entity1: TestEntity, entity2: TestEntity) {
+        testRepository.save(entity1)
+        nestedRepositoryMethodInvoker.saveAndThrowCheckedException(entity2)
+    }
+
+    @DynamoWriteTransaction
+    fun saveAndCommitPropagationRequiresNewThrowingError(entity: TestEntity) {
+        testRepository.save(entity)
+        throw Error("Test exception")
+    }
+
+    @DynamoWriteTransaction
+    fun saveAndCommitPropagationRequiresNewThrowingRuntimeException(entity: TestEntity) {
+        testRepository.save(entity)
+        throw RuntimeException("Test exception")
+    }
+
+    @DynamoWriteTransaction
+    fun saveAndCommitPropagationRequiresNew2ndLvlThrowingRuntimeException(entity: TestEntity, entity2: TestEntity, entity3: TestEntity) {
+        testRepository.save(entity)
+        nestedRepositoryMethodInvoker.saveAndThrowFromNestedRuntimeException(entity2, entity3)
+    }
 }

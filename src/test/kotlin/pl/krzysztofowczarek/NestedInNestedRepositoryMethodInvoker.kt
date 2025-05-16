@@ -27,43 +27,13 @@ package pl.krzysztofowczarek
 import org.springframework.stereotype.Service
 
 @Service
-class NestedRepositoryMethodInvoker(
-    private val testRepository: TestRepository,
-    private val nestedInNestedRepositoryMethodInvoker: NestedInNestedRepositoryMethodInvoker
+class NestedInNestedRepositoryMethodInvoker(
+    private val testRepository: TestRepository
 ) {
-
-    @DynamoWriteTransaction
-    fun saveAndCommit(entity: TestEntity) {
-        testRepository.save(entity)
-    }
-
-    @DynamoWriteTransaction(propagation = DynamoTransactionPropagation.REQUIRES_NEW)
-    fun saveAndCommitRequiresNew(entity: TestEntity) {
-        testRepository.save(entity)
-    }
 
     @DynamoWriteTransaction(propagation = DynamoTransactionPropagation.REQUIRES_NEW)
     fun saveAndThrowRuntimeException(entity: TestEntity) {
         testRepository.save(entity)
         throw RuntimeException("Should break transaction!")
-    }
-
-    @DynamoWriteTransaction(propagation = DynamoTransactionPropagation.REQUIRES_NEW)
-    fun saveAndThrowError(entity: TestEntity) {
-        testRepository.save(entity)
-        throw Error("Should break transaction!")
-    }
-
-    @DynamoWriteTransaction(propagation = DynamoTransactionPropagation.REQUIRES_NEW)
-    fun saveAndThrowCheckedException(entity: TestEntity) {
-        testRepository.save(entity)
-        throw Exception("Should not break transaction!")
-    }
-
-
-    @DynamoWriteTransaction(propagation = DynamoTransactionPropagation.REQUIRES_NEW)
-    fun saveAndThrowFromNestedRuntimeException(entity: TestEntity, entity2: TestEntity) {
-        testRepository.save(entity)
-        nestedInNestedRepositoryMethodInvoker.saveAndThrowRuntimeException(entity2)
     }
 }

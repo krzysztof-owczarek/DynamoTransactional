@@ -29,7 +29,6 @@ import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable
-import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -47,7 +46,16 @@ class DynamoTransactionManager(
 
     private val transactionRequestBuilder = dynamoTransactionRequestBuilderFactory.builder()
 
+    // TODO: Do in factory...
+    private val isNestedTransaction = AtomicBoolean(false)
+    private val isExceptionThrown = AtomicBoolean(false)
+
     private val transactionClosed = AtomicBoolean(false)
+
+    internal fun markAsNestedTransaction() = isNestedTransaction.set(true)
+    internal fun markAsUnrevocerableExceptionThrown() = isExceptionThrown.set(true)
+
+    internal fun isNestedAndThrownException() = isNestedTransaction.get() && isExceptionThrown.get()
 
     /**
      * Transactional request cannot be empty.

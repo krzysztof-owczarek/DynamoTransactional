@@ -55,16 +55,34 @@ class DynamoTransactionAspect(
 
                 startTransaction(dynamoTransactionManagerScopedRef, joinPoint)
             }
+
+            DynamoTransactionPropagation.REQUIRES_NEW -> startTransaction(dynamoTransactionManagerScopedRef, joinPoint)
         }
     }
 
     private fun startTransaction(
         dynamoTransactionManagerScopedRef: ScopedValue<DynamoTransactionManager>,
         joinPoint: ProceedingJoinPoint
-    ) = ScopedValue.where(dynamoTransactionManagerScopedRef, dynamoTransactionManagerPrototypeFactory.create()).call<Any, Throwable> {
+    ) = ScopedValue.where(dynamoTransactionManagerScopedRef, dynamoTransactionManagerPrototypeFactory.create()).call {
         log.debug { "[Transaction#${dynamoTransactionManagerScopedRef.get().transactionId}] Starting transaction." }
-        return@call joinPoint.proceed().also {
-            dynamoTransactionManagerScopedRef.get().commit()
+
+        try {
+            return@call joinPoint.proceed().also {
+                dynamoTransactionManagerScopedRef.get().commit()
+            }
+        } catch (e: Throwable) {
+            // We use Throwable here to catch RuntimeExceptions and all the other exceptions
+            // as Kotlin does not have a concept of checked exceptions.
+            // Such approach is suggested in Spring docs for all use cases in form of ALL_EXCEPTIONS mode
+            // for consistent rollback strategy
+            log.error {
+                "[Transaction#${dynamoTransactionManagerScopedRef.get().transactionId}] " +
+                        "Exception with message: ${e.message} \n" +
+                        "cause: ${e.cause} \n" +
+                        "Will NOT commit."
+            }
+
+            throw e
         }
     }
 }

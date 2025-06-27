@@ -25,5 +25,6 @@
 package pl.krzysztofowczarek
 
 enum class DynamoTransactionPropagation {
-    REQUIRED
+    REQUIRED,
+    REQUIRES_NEW
 }

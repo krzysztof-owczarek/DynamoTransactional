@@ -38,4 +38,9 @@ class NestedRepositoryMethodInvoker(private val testRepository: TestRepository) 
     fun deleteAndCommit(entity: TestEntity) {
         testRepository.delete(entity)
     }
+
+    @DynamoWriteTransaction(propagation = DynamoTransactionPropagation.REQUIRES_NEW)
+    fun saveAndCommitRequiresNew(entity: TestEntity) {
+        testRepository.save(entity)
+    }
 }

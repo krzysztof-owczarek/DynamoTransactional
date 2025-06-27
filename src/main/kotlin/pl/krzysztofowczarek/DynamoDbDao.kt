@@ -46,10 +46,4 @@ class DynamoDbDao<T> (
             table.deleteItem(entity)
         }
     }
-
-    fun commit() {
-        if (transactionMangerRef.isBound) {
-            transactionMangerRef.get().commit()
-        }
-    }
 }
